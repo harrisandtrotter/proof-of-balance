@@ -1,5 +1,5 @@
 # proof-of-balance
-A tool to check the balance of any address at the specified time (block number) for most EVM-compatible chains.
+A tool which uses a Moralis node to check the balance of any address at the specified time (block number) for most EVM-compatible chains.
 Useful for audit testing and gains assurance over the following assertions: completeness and existence. Further functionality will be added in future to gain assurance over valuation and accuracy in a fully automated process. 
 
 The chains currently supported are as follows:
