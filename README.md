@@ -3,12 +3,11 @@ The below tool provides its user assurance over a wallets contents across EVM-co
 
 The tool sets to solve three key areas faced by assurance providers. 
 
-Existence: Provides assurance that a specific token and balance existed at a specific historical date or block. (Active) 
-
-Completeness: Allows for all tokens with balances on the wallet to be identified. (Active) 
-
-Valuation: Provides the valuation of token balance at specific historic date/ block. (Coming soon). 
-
+```
+- Existence: Provides assurance that a specific token and balance existed at a specific historical date or block. (Active) 
+- Completeness: Allows for all tokens with balances on the wallet to be identified. (Active) 
+- Valuation: Provides the valuation of token balance at specific historic date/ block. (Coming soon). 
+```
  
 
 EVM Chains currently supported: 
