@@ -1,18 +1,26 @@
 # proof-of-balance
-A tool which uses a Moralis node to check the balance of any address at the specified time (block number) for most EVM-compatible chains.
-Useful for audit testing and gains assurance over the following assertions: completeness and existence. Further functionality will be added in future to gain assurance over valuation and accuracy in a fully automated process. 
+The below tool provides its user assurance over a wallets contents across EVM-compatible chains at a specified historic date/ Block number.  
 
-The chains currently supported are as follows:
-- Ethereum
-- Polygon
-- Binance Smart Chain
-- Avalanche
-- Arbitrum
-- Fantom
-- Cronos
+The tool sets to solve three key areas faced by assurance providers. 
 
-This tool is a work-in-progress and will eventually have a frontend added to it to make it as user-friendly as possible. 
+Existence: Provides assurance that a specific token and balance existed at a specific historical date or block. (Active) 
 
+Completeness: Allows for all tokens with balances on the wallet to be identified. (Active) 
+
+Valuation: Provides the valuation of token balance at specific historic date/ block. (Coming soon). 
+
+ 
+
+EVM Chains currently supported: 
+- Ethereum 
+- Polygon 
+- Binance smart Chain 
+- Avalanche 
+- Arbitrum 
+- Fantom 
+- Cronos 
+
+The tool is a work-in-progress and will eventually have a front end added to make it as user-friendly as possible. 
 A tutorial is below on how to use the programme in its current form. 
 
 **Step-by-step instructions**
