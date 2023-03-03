@@ -220,7 +220,7 @@ func getRequest(url string) (*http.Response, error) {
 	}
 
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-API-Key", "JODRWjX4czsUtirHaEXxEY81jznW3gGQf1GExtDVP30Mao7HUWbvLSPrx2VNaaKE")
+	req.Header.Add("X-API-Key", "ADD YOUR MORALIS API KEY HERE")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
