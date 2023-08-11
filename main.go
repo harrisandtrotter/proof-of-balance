@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -11,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/harrisandtrotter/proof-of-balance/blocks"
+	"github.com/harrisandtrotter/proof-of-balance/initialisers"
+	"github.com/harrisandtrotter/proof-of-balance/prices"
 	"github.com/sqweek/dialog"
 )
 
@@ -42,7 +43,18 @@ const (
 	FantomNativeChecker    = "https://ftmscan.com/balancecheck-tool"
 	AvalancheNativeChecker = "https://snowtrace.io/balancecheck-tool"
 	CronosNativeChecker    = "https://cronoscan.com/balancecheck-tool"
+
+	// Native tokens
+	ETH   = "ETH"
+	ARB   = "ETH"
+	BSC   = "BNB"
+	FTM   = "FTM"
+	MATIC = "MATIC"
+	AVAX  = "AVAX"
+	CRO   = "CRO"
 )
+
+var block blocks.Block
 
 // Data structure
 type TokenBalance struct {
@@ -74,33 +86,41 @@ type Block struct {
 	ParentHash     string `json:"parent_hash"`
 }
 
+func init() {
+	initialisers.LoadEnvironment()
+	initialisers.LoadAPIKey()
+}
+
 func main() {
-	for {
-		fmt.Println("\nWelcome to Proof-of-Balance. \nSee below for the available options. ")
-		fmt.Println("1. Block number")
-		fmt.Println("2. Retrieve balances")
+	// for {
+	// 	fmt.Println("\nWelcome to Proof-of-Balance. \nSee below for the available options. ")
+	// 	fmt.Println("1. Block number")
+	// 	fmt.Println("2. Retrieve balances")
 
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("\nSelect the option you want to use today (e.g., 1 for receiving specific block number): \n")
-		input, _ := reader.ReadString('\n')
+	// 	reader := bufio.NewReader(os.Stdin)
+	// 	fmt.Print("\nSelect the option you want to use today (e.g., 1 for receiving specific block number): \n")
+	// 	input, _ := reader.ReadString('\n')
 
-		switch strings.TrimSpace(input) {
-		case "1":
-			fmt.Println("Coming soon.")
-		case "2":
-			fmt.Println("Please select the CSV file. \nThe format needs to be the wallet address in the column A and the relevant chain in column B. \n\nThe available chains and the required format are as follows: \neth\narbitrum\nfantom\nbsc\npolygon\navalanche\ncronos")
-			time.Sleep(time.Second * 1)
-			GetTokenBalance()
-		default:
-			fmt.Println("Invalid option selected.")
-		}
+	// 	switch strings.TrimSpace(input) {
+	// 	case "1":
+	// 		fmt.Println("Coming soon.")
+	// 	case "2":
+	// 		fmt.Println("Please select the CSV file. \nThe format needs to be the wallet address in the column A and the relevant chain in column B. \n\nThe available chains and the required format are as follows: \neth\narbitrum\nfantom\nbsc\npolygon\navalanche\ncronos")
+	// 		time.Sleep(time.Second * 1)
+	// 		GetTokenBalance()
+	// 	default:
+	// 		fmt.Println("Invalid option selected.")
+	// 	}
 
-		time.Sleep(time.Second * 3)
-	}
+	// 	time.Sleep(time.Second * 3)
+	// }
+
+	blockNo := block.BlockNumber("eth", "31/12/2022 23:59:59")
+	fmt.Println(blockNo)
 
 }
 
-// Main get balance function to be ran in the main script.
+// Main get balance function
 func GetTokenBalance() {
 	// Get user to select CSV input file
 	filename, err := dialog.File().Filter("CSV file", "csv").Load()
@@ -108,12 +128,19 @@ func GetTokenBalance() {
 		fmt.Println("Error finding file:", &err)
 	}
 
+	// Parse inputted CSV to accessible data structure
 	data := CsvToToken(filename)
 
-	// Create CSV output file
-	output, err := os.Create("retrieved-data.csv")
+	// Store user output filename in outputFile variable
+	outputFile, err := dialog.File().Filter("CSV file", "csv").Title("Save the output file to CSV with your desired name.").Save()
 	if err != nil {
-		log.Fatalf("Error creating csv file: %v.", err)
+		fmt.Println("Error saving file:", &err)
+	}
+
+	// Create output CSV file
+	output, err := os.Create(outputFile + ".csv")
+	if err != nil {
+		log.Fatalf("Error creating csv file: %v", err)
 	}
 
 	defer output.Close()
@@ -121,60 +148,135 @@ func GetTokenBalance() {
 	writer := csv.NewWriter(output)
 	defer writer.Flush()
 
-	// CSV output file headers
-	headers := []string{"Address", "Chain", "Token Name", "Token Symbol", "Token Address", "Balance", "Native Balance", "Block number", "Token checker"}
-	// Write the headers to the CSV
+	// Create and write headers to output CSV file
+	headers := []string{"Address", "Chain", "Token Name", "Token Symbol", "Token Address", "Balance", "Block number", "Token checker", "Usd rate", "Usd value"}
 	err = writer.Write(headers)
 	if err != nil {
-		log.Fatalf("Error writing headers to CSV file: %v.", err)
+		log.Fatalf("Error writing CSV headers: %v", err)
 	}
 
-	// Range over parsed data for tokens
+	// Range over and access the data structure from "data" variable and assigned to "value" variable.
 	for _, value := range data {
-		// Retrieve block number for specified time
-		block := GetBlock(value.Chain, Timestamp("31/12/2022 23:59:59 UTC"))
+		// Used to store asset symbol for native tokens
+		var asset string
+		// Used to store balance checker url to print into the CSV
+		var nativeTokenChecker string
+		// Used to store native token name to print into the CSV
+		var tokenName string
+		// Used to access prices module to retrieve prices and calculate Usd value.
+		var price prices.Price
+		// Used to calculate USD value based on "price" variable
+		var Uvalue float64
 
-		// Perform token balance request and store in variable "response"
-		response := getTokenBalance(value.Address, value.Chain, strconv.Itoa(block.Block), "")
-		_ = response
+		// Get block number per chain per specified timestamp
+		// block := GetBlock(value.Chain, Timestamp("31/12/2022 23:59:59 UTC"))
+		blockNo := block.BlockNumber(value.Chain, block.TimestampToUnix("31/12/2022 23:59:59"))
+		// Retrieve balance for native token per specified chain
+		nativeResponse := getBalance(value.Address, value.Chain, strconv.Itoa(blockNo))
 
-		// Perform native token balance request and store in variable "nativeResponse"
-		nativeResponse := getBalance(value.Address, value.Chain, strconv.Itoa(block.Block))
-		_ = nativeResponse
+		// Parse the response for native token to an accessible native token data strucuture
+		native := ResponseToNative(nativeResponse)
 
-		// Parse native token response data to accessible format for the script
-		nativeData := ResponseToNative(nativeResponse)
+		// Logic to print native asset and balance checker url to the output CSV file.
+		if value.Chain == Ethereum {
+			asset = ETH
+			nativeTokenChecker = EthereumNativeChecker
+			tokenName = "Ethereum"
+		} else if value.Chain == Arbitrum {
+			asset = ARB
+			nativeTokenChecker = ArbitrumNativeChecker
+			tokenName = "Ethereum"
+		} else if value.Chain == BinanceSmartChain {
+			asset = BSC
+			nativeTokenChecker = BSCNativeChecker
+			tokenName = "Binance Coin"
+		} else if value.Chain == Fantom {
+			asset = FTM
+			nativeTokenChecker = FantomNativeChecker
+			tokenName = "Fantom"
+		} else if value.Chain == Polygon {
+			asset = MATIC
+			nativeTokenChecker = PolygonNativeChecker
+			tokenName = "Polygon (MATIC)"
+		} else if value.Chain == Avalanche {
+			asset = AVAX
+			nativeTokenChecker = AvalancheNativeChecker
+			tokenName = "Avalanche"
+		} else if value.Chain == Cronos {
+			asset = CRO
+			nativeTokenChecker = CronosNativeChecker
+			tokenName = "Cronos"
+		}
 
-		// Parse token response data to accessible format for the script
-		newData := ResponseToToken(response)
+		// fmt.Printf("chain: %v, Asset: %v, Balance: %v, address: %v, block: %v\n", value.Chain, asset, native.Balance, value.Address, block.Block)
+		// Convert native token balance from string to number
+		nativeString, err := strconv.ParseFloat(native.Balance, 64)
+		if err != nil {
+			fmt.Printf(`Error for address %v, when parsing asset %v, with a balance of "%v" on %v chain\n Error message below:\n.`, value.Address, asset, native.Balance, value.Chain)
+			log.Fatalf("Error parsing native balance token: %v", err)
+		}
 
-		for _, tokens := range newData {
+		// Convert native token balance from wei to ether
+		nativeToken := nativeString / math.Pow10(18)
 
-			// Convert token balance data from string to number
-			balanceString, err := strconv.ParseFloat(tokens.Balance, 64)
+		// Store values and write values for native token data
+		nativeRecord := []string{value.Address, value.Chain, tokenName, asset, " ", fmt.Sprintf("%f", nativeToken), strconv.Itoa(blockNo), nativeTokenChecker, "", ""}
+		err = writer.Write(nativeRecord)
+		if err != nil {
+			log.Fatalf("Error writing to csv file: %v.", err)
+		}
+
+		// Retrieve balance for ERC20 tokens per specified chain and timestamp
+		tokenResponse := getTokenBalance(value.Address, value.Chain, strconv.Itoa(block.Block), "")
+
+		// Parse the response for ERC20 token to an accessible ERC20 token data strucuture
+		tokenData := ResponseToToken(tokenResponse)
+
+		// Range over and access the data structure from "tokenData" variable and store in "token" variable
+		for _, token := range tokenData {
+			var erc20TokenChecker string
+
+			// Convert ERC20 token balance from string to number
+			tokenString, err := strconv.ParseFloat(token.Balance, 64)
 			if err != nil {
-				log.Fatalf("Error reading decimals amount: %v.", err)
+				log.Fatalf("Error parsing token balances: %v", err)
 			}
 
-			// Convert native token balance data from string to number
-			nativeBalanceStr, err := strconv.ParseFloat(nativeData.Balance, 64)
-			if err != nil {
-				log.Fatalf("Error reading decimals amount for native token: %v.", err)
+			// Convert ERC20 token balance from specified decimals to no decimals
+			tokenBalance := tokenString / math.Pow10(token.Decimals)
+
+			// Retrieve price for ERC20 token
+			erc20Price := price.GetPrice(token.TokenAdress, value.Chain, block.Block)
+
+			// Calculate USD value
+			Uvalue = erc20Price * tokenBalance
+
+			// Logic for printing ERC20 token balance checker tool to output CSV
+			if value.Chain == Ethereum {
+				erc20TokenChecker = EthereumTokenChecker
+			} else if value.Chain == Polygon {
+				erc20TokenChecker = PolygonTokenChecker
+			} else if value.Chain == Arbitrum {
+				erc20TokenChecker = ArbitrumTokenChecker
+			} else if value.Chain == BinanceSmartChain {
+				erc20TokenChecker = BSCTokenChecker
+			} else if value.Chain == Fantom {
+				erc20TokenChecker = FantomTokenChecker
+			} else if value.Chain == Cronos {
+				erc20TokenChecker = CronosTokenChecker
+			} else if value.Chain == Avalanche {
+				erc20TokenChecker = AvalancheTokenChecker
 			}
 
-			// Deal with decimals conversion to readable number for balances
-			nativeBalanceNumber := nativeBalanceStr / math.Pow10(18)
-			balance := balanceString / math.Pow10(tokens.Decimals)
-
-			// Write the retrieved data to the CSV output file
-			record := []string{value.Address, value.Chain, tokens.Name, tokens.Symbol, tokens.TokenAdress, fmt.Sprintf("%f", balance), fmt.Sprintf("%f", nativeBalanceNumber), strconv.Itoa(block.Block), ""}
-			err = writer.Write(record)
+			// Store and write values for ERC20 token data
+			tokenRecord := []string{value.Address, value.Chain, token.Name, token.Symbol, token.TokenAdress, fmt.Sprintf("%f", tokenBalance), strconv.Itoa(blockNo), erc20TokenChecker, strconv.FormatFloat(erc20Price, 'f', 6, 64), strconv.FormatFloat(Uvalue, 'f', 6, 64)}
+			err = writer.Write(tokenRecord)
 			if err != nil {
-				log.Fatalf("Error writing tokens to CSV file: %v.", err)
+				log.Fatalf("Error: %v.", err)
 			}
+
 		}
 	}
-
 }
 
 // Used to get one ERC20 token balance for an address for specified chain.
@@ -220,7 +322,7 @@ func getRequest(url string) (*http.Response, error) {
 	}
 
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-API-Key", "ADD YOUR MORALIS API KEY HERE")
+	req.Header.Add("X-API-Key", initialisers.APIKEY)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
