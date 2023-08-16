@@ -3,9 +3,11 @@ package prices
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
+
+	"github.com/harrisandtrotter/proof-of-balance/initialisers"
 )
 
 const (
@@ -28,13 +30,7 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-type File struct {
-	Name    string
-	Address string
-}
-
-// The GetPrice function returns the price for the specified asset. It takes the chain id (as specified by the CG API), the token contract address,
-// the quote currency required and the from and to timestamp range.
+// Returns the price for the specified asset.
 func (p *Price) GetPrice(address, chain string, block int) float64 {
 
 	url := fmt.Sprintf("%v/erc20/%v/price?chain=%v&to_block=%v", MoralisAPI, address, chain, block)
@@ -45,14 +41,14 @@ func (p *Price) GetPrice(address, chain string, block int) float64 {
 	}
 
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-API-Key", "JODRWjX4czsUtirHaEXxEY81jznW3gGQf1GExtDVP30Mao7HUWbvLSPrx2VNaaKE")
+	req.Header.Add("X-API-Key", initialisers.APIKEY)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -63,8 +59,6 @@ func (p *Price) GetPrice(address, chain string, block int) float64 {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(url)
 
 	msg := data.CheckError(body)
 	if strings.Contains(msg, "No pools found with enough liquidity, to calculate the price") {
@@ -87,10 +81,4 @@ func (p *Price) CheckError(body []byte) string {
 	}
 
 	return errorMessage.Message
-}
-
-func (p *Price) ReturnPrice() []Price {
-	var price []Price
-
-	return price
 }
