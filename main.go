@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/harrisandtrotter/proof-of-balance/api"
 	"github.com/harrisandtrotter/proof-of-balance/blocks"
 	"github.com/harrisandtrotter/proof-of-balance/initialisers"
 	"github.com/harrisandtrotter/proof-of-balance/prices"
@@ -115,8 +116,7 @@ func main() {
 	// 	time.Sleep(time.Second * 3)
 	// }
 
-	blockNo := block.BlockNumber("eth", "31/12/2022 23:59:59")
-	fmt.Println(blockNo)
+	api.Setup()
 
 }
 
