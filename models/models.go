@@ -54,6 +54,7 @@ type ERC20TokenResponse struct {
 	ERC20TokenSymbol          string `json:"erc20_token_symbol"`
 	ERC20TokenContractAddress string `json:"erc20_token_contract_address"`
 	ERC20TokenBalance         string `json:"erc20_token_balance"`
+	ERC20TokenCheckerUrl      string `json:"erc20_token_checker_url"`
 	ERC20PossibleSpam         bool   `json:"erc20_possible_spam"`
 }
 
@@ -169,4 +170,33 @@ func ReturnNativeInfo(chain string) (string, string, string, error) {
 	}
 
 	return asset, checkerUrl, tokenName, nil
+}
+
+func ReturnERC20TokenChecker(chain string) (string, error) {
+	var checkerUrl string
+
+	blockchain, err := DetermineChain(chain)
+	if err != nil {
+		return "", err
+	}
+
+	if blockchain == Ethereum {
+		checkerUrl = EthereumTokenChecker
+	} else if blockchain == Arbitrum {
+		checkerUrl = ArbitrumTokenChecker
+	} else if blockchain == BinanceSmartChain {
+		checkerUrl = BSCTokenChecker
+	} else if blockchain == Fantom {
+		checkerUrl = FantomTokenChecker
+	} else if blockchain == Avalanche {
+		checkerUrl = AvalancheTokenChecker
+	} else if blockchain == Polygon {
+		checkerUrl = PolygonTokenChecker
+	} else if blockchain == Cronos {
+		checkerUrl = CronosTokenChecker
+	} else {
+		return "", errors.New("erc20 token checker url cannot be determined")
+	}
+
+	return checkerUrl, nil
 }

@@ -103,6 +103,13 @@ func GetBalance(c *fiber.Ctx) error {
 			})
 		}
 
+		tokenUrl, err := models.ReturnERC20TokenChecker(chain)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error with token checker url": err.Error(),
+			})
+		}
+
 		tokenBalance := tokenStr / math.Pow10(value.Decimals)
 
 		tokenBalanceStr := strconv.FormatFloat(tokenBalance, 'f', 6, 64)
@@ -112,6 +119,7 @@ func GetBalance(c *fiber.Ctx) error {
 			ERC20TokenSymbol:          value.Symbol,
 			ERC20TokenContractAddress: value.TokenAddress,
 			ERC20TokenBalance:         tokenBalanceStr,
+			ERC20TokenCheckerUrl:      tokenUrl,
 			ERC20PossibleSpam:         value.PossibleSpam,
 		})
 
