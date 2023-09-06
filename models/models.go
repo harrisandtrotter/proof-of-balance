@@ -13,6 +13,7 @@ type TokenBalance struct {
 	Thumbnail    string `json:"thumbnail"`
 	Decimals     int    `json:"decimals"`
 	Balance      string `json:"balance"`
+	PossibleSpam bool   `json:"possible_spam"`
 }
 
 // Input file data structure for token balances
@@ -33,6 +34,27 @@ type Request struct {
 	Chain     string `json:"chain"`
 	Date      string `json:"date"`
 	Timestamp string `json:"timestamp"`
+}
+
+// Response sent to client
+type Response struct {
+	Address          string               `json:"account_address"`
+	Chain            string               `json:"chain"`
+	BlockNumber      int                  `json:"block_number"`
+	Asset            string               `json:"native_asset"`
+	AssetName        string               `json:"native_asset_name"`
+	NativeCheckerUrl string               `json:"native_checker_url"`
+	Balance          float64              `json:"native_balance"`
+	ERC20Tokens      []ERC20TokenResponse `json:"erc20_tokens"`
+}
+
+// Response sent to client (token array)
+type ERC20TokenResponse struct {
+	ERC20TokenName            string `json:"erc20_token_name"`
+	ERC20TokenSymbol          string `json:"erc20_token_symbol"`
+	ERC20TokenContractAddress string `json:"erc20_token_contract_address"`
+	ERC20TokenBalance         string `json:"erc20_token_balance"`
+	ERC20PossibleSpam         bool   `json:"erc20_possible_spam"`
 }
 
 const (
@@ -91,7 +113,7 @@ func DetermineChain(chain string) (string, error) {
 	} else if chain == "avax" || chain == "avalanche" || chain == "AVAX" {
 		blockchain = Avalanche
 	} else {
-		err := errors.New("Did you make a typo? If not, then that blockchain is not supported. Please use one of the supported chains: Ethereum, Arbitrum, Polygon, Binance Smart Chain, Fantom, Avalanche, Cronos")
+		err := errors.New("did you make a typo? if not, then that blockchain is not supported. please use one of the supported chains: ethereum, arbitrum, polygon, binance smart chain, fantom, avalanche, cronos")
 		return "", err
 	}
 
@@ -100,10 +122,13 @@ func DetermineChain(chain string) (string, error) {
 
 // Determine info such as native token checker url, token name to be returned to user
 func ReturnNativeInfo(chain string) (string, string, string, error) {
+	// Store asset symbol
 	var asset string
 
+	// Store native token checker url
 	var checkerUrl string
 
+	// Store token name
 	var tokenName string
 
 	blockchain, err := DetermineChain(chain)

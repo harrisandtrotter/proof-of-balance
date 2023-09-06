@@ -49,7 +49,7 @@ func GetBalance(c *fiber.Ctx) error {
 	chain, err := models.DetermineChain(request.Chain)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+			"error determining chain": err.Error(),
 		})
 	}
 
@@ -60,7 +60,7 @@ func GetBalance(c *fiber.Ctx) error {
 	asset, url, name, err := models.ReturnNativeInfo(chain)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+			"error with native information": err.Error(),
 		})
 	}
 
@@ -68,55 +68,67 @@ func GetBalance(c *fiber.Ctx) error {
 	nativeBalanceResp, err := getNativeBalance(request.Address, chain, blockNo)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+			"error with json": err.Error(),
 		})
 	}
 
 	// convert type string to float64
 	balanceStr, err := strconv.ParseFloat(nativeBalanceResp.Balance, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error with native type conversion": err.Error(),
+		})
+	}
 
 	// convert from wei to ether
 	balance := balanceStr / math.Pow10(18)
 
-	var tokenBalanceResponse *models.TokenBalance
+	// var tokenBalanceResponse *models.TokenBalance
 
 	tokenBalanceResp, err := getTokenBalance(request.Address, chain, blockNo)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+			"error with erc20 token balances": err.Error(),
 		})
 	}
 
-	for _, value := range tokenBalanceResp {
-		tokenBalanceResponse = &value
+	var tokenBalances []models.ERC20TokenResponse
 
-		tokenStr, err := strconv.ParseFloat(tokenBalanceResponse.Balance, 64)
+	for _, value := range tokenBalanceResp {
+
+		tokenStr, err := strconv.ParseFloat(value.Balance, 64)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": err.Error(),
+				"error with token type conversion": err.Error(),
 			})
 		}
 
-		tokenBalance := tokenStr / math.Pow10(tokenBalanceResponse.Decimals)
+		tokenBalance := tokenStr / math.Pow10(value.Decimals)
 
 		tokenBalanceStr := strconv.FormatFloat(tokenBalance, 'f', 6, 64)
 
-		tokenBalanceResponse.Balance = tokenBalanceStr
+		tokenBalances = append(tokenBalances, models.ERC20TokenResponse{
+			ERC20TokenName:            value.Name,
+			ERC20TokenSymbol:          value.Symbol,
+			ERC20TokenContractAddress: value.TokenAddress,
+			ERC20TokenBalance:         tokenBalanceStr,
+			ERC20PossibleSpam:         value.PossibleSpam,
+		})
+
 	}
 
-	return c.JSON(fiber.Map{
-		"addresss":                     request.Address,
-		"chain":                        chain,
-		"block_number":                 blockNo,
-		"asset":                        asset,
-		"native_checker_url":           url,
-		"token_name":                   name,
-		"balance":                      balance,
-		"erc20_token_name":             tokenBalanceResponse.Name,
-		"erc20_token_symbol":           tokenBalanceResponse.Symbol,
-		"erc20_token_contract_address": tokenBalanceResponse.TokenAddress,
-		"erc20_token_balance":          tokenBalanceResponse.Balance,
-	})
+	response := models.Response{
+		Address:          request.Address,
+		Chain:            chain,
+		BlockNumber:      blockNo,
+		Asset:            asset,
+		AssetName:        name,
+		Balance:          balance,
+		NativeCheckerUrl: url,
+		ERC20Tokens:      tokenBalances,
+	}
+
+	return c.JSON(response)
 
 }
 
