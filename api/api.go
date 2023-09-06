@@ -65,7 +65,7 @@ func GetBalance(c *fiber.Ctx) error {
 	}
 
 	// get native balance
-	balanceResp, err := getBalance(request.Address, chain, blockNo)
+	nativeBalanceResp, err := getNativeBalance(request.Address, chain, blockNo)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -73,24 +73,74 @@ func GetBalance(c *fiber.Ctx) error {
 	}
 
 	// convert type string to float64
-	balanceStr, err := strconv.ParseFloat(balanceResp.Balance, 64)
+	balanceStr, err := strconv.ParseFloat(nativeBalanceResp.Balance, 64)
 
 	// convert from wei to ether
 	balance := balanceStr / math.Pow10(18)
 
+	var tokenBalanceResponse *models.TokenBalance
+
+	tokenBalanceResp, err := getTokenBalance(request.Address, chain, blockNo)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	for _, value := range tokenBalanceResp {
+		tokenBalanceResponse = &value
+
+		tokenStr, err := strconv.ParseFloat(tokenBalanceResponse.Balance, 64)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		tokenBalance := tokenStr / math.Pow10(tokenBalanceResponse.Decimals)
+
+		tokenBalanceStr := strconv.FormatFloat(tokenBalance, 'f', 6, 64)
+
+		tokenBalanceResponse.Balance = tokenBalanceStr
+	}
+
 	return c.JSON(fiber.Map{
-		"addresss":           request.Address,
-		"chain":              chain,
-		"block_number":       blockNo,
-		"asset":              asset,
-		"native_checker_url": url,
-		"token_name":         name,
-		"balance":            balance,
+		"addresss":                     request.Address,
+		"chain":                        chain,
+		"block_number":                 blockNo,
+		"asset":                        asset,
+		"native_checker_url":           url,
+		"token_name":                   name,
+		"balance":                      balance,
+		"erc20_token_name":             tokenBalanceResponse.Name,
+		"erc20_token_symbol":           tokenBalanceResponse.Symbol,
+		"erc20_token_contract_address": tokenBalanceResponse.TokenAddress,
+		"erc20_token_balance":          tokenBalanceResponse.Balance,
 	})
 
 }
 
-func getBalance(address, chain string, block int) (models.NativeBalance, error) {
+// Get ERC20 token balance
+func getTokenBalance(address, chain string, block int) ([]models.TokenBalance, error) {
+	url := fmt.Sprintf("https://deep-index.moralis.io/api/v2/%v/erc20?chain=%v&to_block=%v", address, chain, block)
+
+	resp, err := get(url)
+	if err != nil {
+		return []models.TokenBalance{}, err
+	}
+
+	var response *[]models.TokenBalance
+
+	err = json.Unmarshal(resp, &response)
+	if err != nil {
+		return []models.TokenBalance{}, err
+	}
+
+	return *response, nil
+}
+
+// Get native token balance
+func getNativeBalance(address, chain string, block int) (models.NativeBalance, error) {
 	url := fmt.Sprintf("https://deep-index.moralis.io/api/v2/%v/balance?chain=%v&to_block=%v", address, chain, block)
 
 	resp, err := get(url)
