@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/harrisandtrotter/proof-of-balance/api"
-	"github.com/harrisandtrotter/proof-of-balance/blocks"
-	"github.com/harrisandtrotter/proof-of-balance/initialisers"
-	"github.com/harrisandtrotter/proof-of-balance/prices"
+	"github.com/harrisandtrotter/proof-of-balance/backend/api"
+	"github.com/harrisandtrotter/proof-of-balance/backend/blocks"
+	"github.com/harrisandtrotter/proof-of-balance/backend/initialisers"
+	"github.com/harrisandtrotter/proof-of-balance/backend/prices"
 	"github.com/sqweek/dialog"
 )
 
