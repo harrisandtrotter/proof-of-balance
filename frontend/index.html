@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harris & Trotter - Proof of Balance</title>
+    <link rel="icon" type="image/x-icon" href="/frontend/assets/favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Proof of Balance</h1>
+    <form id="balanceForm">
+    <div class="input-container">
+        <label for="address">Address</label>
+        <input type="text" id="address" name="address" placeholder="0x1234...." required><br>
+        <br>
+        <label for="chain">Chain</label>
+        <select name="chain" id="chain" required>
+            <option value="eth">Ethereum</option>
+            <option value="polygon">Polygon (MATIC)</option>
+            <option value="bsc">Binance Smart Chain</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="ftm">Fantom</option>
+            <option value="avax">Avalanche</option>
+            <option value="cronos">Cronos</option>
+        </select><br><br>
+
+        <label for="date">Date</label>
+        <input type="date" id="date" name="date" required><br><br>
+        
+        <label for="timestamp">Timestamp</label>
+        <input type="text" id="timestamp" name="timestamp" pattern="^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$" placeholder="hh:mm:ss" required><br>
+    </div>
+    <button type="submit" class="submit-button">Retrieve balances</button>
+    </form><br>
+
+    <div id="result" class="result">Result</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
