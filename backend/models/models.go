@@ -36,26 +36,17 @@ type Request struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// Response sent to client
-type Response struct {
-	Address          string               `json:"account_address"`
-	Chain            string               `json:"chain"`
-	BlockNumber      int                  `json:"block_number"`
-	Asset            string               `json:"native_asset"`
-	AssetName        string               `json:"native_asset_name"`
-	NativeCheckerUrl string               `json:"native_checker_url"`
-	Balance          float64              `json:"native_balance"`
-	ERC20Tokens      []ERC20TokenResponse `json:"erc20_tokens"`
-}
-
-// Response sent to client (token array)
-type ERC20TokenResponse struct {
-	ERC20TokenName            string `json:"erc20_token_name"`
-	ERC20TokenSymbol          string `json:"erc20_token_symbol"`
-	ERC20TokenContractAddress string `json:"erc20_token_contract_address"`
-	ERC20TokenBalance         string `json:"erc20_token_balance"`
-	ERC20TokenCheckerUrl      string `json:"erc20_token_checker_url"`
-	ERC20PossibleSpam         bool   `json:"erc20_possible_spam"`
+// The main response which will be returned to client
+type ClientResponse struct {
+	Address      string  `json:"account_address"`
+	Chain        string  `json:"chain"`
+	BlockNumber  int     `json:"block_number"`
+	Asset        string  `json:"asset_symbol"`
+	AssetName    string  `json:"asset_name"`
+	AssetAddress string  `json:"contract_address"`
+	Balance      float64 `json:"balance"`
+	CheckerUrl   string  `json:"checker_url"`
+	PossibleSpam bool    `json:"possible_spam"`
 }
 
 const (
@@ -122,7 +113,7 @@ func DetermineChain(chain string) (string, error) {
 }
 
 // Determine info such as native token checker url, token name to be returned to user
-func ReturnNativeInfo(chain string) (string, string, string, error) {
+func ReturnInfo(chain string) (string, string, string, string, error) {
 	// Store asset symbol
 	var asset string
 
@@ -132,71 +123,52 @@ func ReturnNativeInfo(chain string) (string, string, string, error) {
 	// Store token name
 	var tokenName string
 
+	// Store ERC20 token checker url
+	var tokenCheckerUrl string
+
 	blockchain, err := DetermineChain(chain)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
 	if blockchain == Ethereum {
 		asset = ETH
 		checkerUrl = EthereumNativeChecker
 		tokenName = "Ethereum"
+		tokenCheckerUrl = EthereumTokenChecker
 	} else if blockchain == Arbitrum {
 		asset = ARB
 		checkerUrl = ArbitrumNativeChecker
 		tokenName = "Ethereum"
+		tokenCheckerUrl = ArbitrumTokenChecker
 	} else if blockchain == BinanceSmartChain {
 		asset = BSC
 		checkerUrl = BSCNativeChecker
 		tokenName = "Binance Coin"
+		tokenCheckerUrl = BSCTokenChecker
 	} else if blockchain == Fantom {
 		asset = FTM
 		checkerUrl = FantomNativeChecker
 		tokenName = "Fantom"
+		tokenCheckerUrl = FantomTokenChecker
 	} else if blockchain == Avalanche {
 		asset = AVAX
 		checkerUrl = AvalancheNativeChecker
 		tokenName = "Avalanche"
+		tokenCheckerUrl = AvalancheTokenChecker
 	} else if blockchain == Polygon {
 		asset = MATIC
 		checkerUrl = PolygonNativeChecker
 		tokenName = "Polygon (MATIC)"
+		tokenCheckerUrl = PolygonTokenChecker
 	} else if blockchain == Cronos {
 		asset = CRO
 		checkerUrl = CronosNativeChecker
 		tokenName = "Cronos"
+		tokenCheckerUrl = CronosTokenChecker
 	} else {
-		return "", "", "", errors.New("native information cannot be determined")
+		return "", "", "", "", errors.New("token information cannot be determined")
 	}
 
-	return asset, checkerUrl, tokenName, nil
-}
-
-func ReturnERC20TokenChecker(chain string) (string, error) {
-	var checkerUrl string
-
-	blockchain, err := DetermineChain(chain)
-	if err != nil {
-		return "", err
-	}
-
-	if blockchain == Ethereum {
-		checkerUrl = EthereumTokenChecker
-	} else if blockchain == Arbitrum {
-		checkerUrl = ArbitrumTokenChecker
-	} else if blockchain == BinanceSmartChain {
-		checkerUrl = BSCTokenChecker
-	} else if blockchain == Fantom {
-		checkerUrl = FantomTokenChecker
-	} else if blockchain == Avalanche {
-		checkerUrl = AvalancheTokenChecker
-	} else if blockchain == Polygon {
-		checkerUrl = PolygonTokenChecker
-	} else if blockchain == Cronos {
-		checkerUrl = CronosTokenChecker
-	} else {
-		return "", errors.New("erc20 token checker url cannot be determined")
-	}
-
-	return checkerUrl, nil
+	return asset, checkerUrl, tokenName, tokenCheckerUrl, nil
 }

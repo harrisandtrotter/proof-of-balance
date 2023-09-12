@@ -22,7 +22,7 @@ func Setup() {
 	router := fiber.New()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: "http://127.0.0.1:5501",
+		AllowOrigins: "*",
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
 
@@ -63,7 +63,7 @@ func GetBalance(c *fiber.Ctx) error {
 	blockNo := block.BlockNumber(chain, request.Date+" "+request.Timestamp)
 
 	// relevant info to be returned to user
-	asset, url, name, err := models.ReturnNativeInfo(chain)
+	asset, url, name, tokenUrl, err := models.ReturnInfo(chain)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error with native information": err.Error(),
@@ -89,16 +89,25 @@ func GetBalance(c *fiber.Ctx) error {
 	// convert from wei to ether
 	balance := balanceStr / math.Pow10(18)
 
-	// var tokenBalanceResponse *models.TokenBalance
-
 	tokenBalanceResp, err := getTokenBalance(request.Address, chain, blockNo)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error with erc20 token balances": err.Error(),
 		})
 	}
+	var response []models.ClientResponse
 
-	var tokenBalances []models.ERC20TokenResponse
+	response = append(response, models.ClientResponse{
+		Address:      request.Address,
+		Chain:        chain,
+		BlockNumber:  blockNo,
+		Asset:        asset,
+		AssetName:    name,
+		AssetAddress: "N/A",
+		Balance:      balance,
+		CheckerUrl:   url,
+		PossibleSpam: false,
+	})
 
 	for _, value := range tokenBalanceResp {
 
@@ -109,37 +118,20 @@ func GetBalance(c *fiber.Ctx) error {
 			})
 		}
 
-		tokenUrl, err := models.ReturnERC20TokenChecker(chain)
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error with token checker url": err.Error(),
-			})
-		}
-
 		tokenBalance := tokenStr / math.Pow10(value.Decimals)
 
-		tokenBalanceStr := strconv.FormatFloat(tokenBalance, 'f', 6, 64)
-
-		tokenBalances = append(tokenBalances, models.ERC20TokenResponse{
-			ERC20TokenName:            value.Name,
-			ERC20TokenSymbol:          value.Symbol,
-			ERC20TokenContractAddress: value.TokenAddress,
-			ERC20TokenBalance:         tokenBalanceStr,
-			ERC20TokenCheckerUrl:      tokenUrl,
-			ERC20PossibleSpam:         value.PossibleSpam,
+		response = append(response, models.ClientResponse{
+			Address:      request.Address,
+			Chain:        chain,
+			BlockNumber:  blockNo,
+			Asset:        value.Symbol,
+			AssetName:    value.Name,
+			AssetAddress: value.TokenAddress,
+			Balance:      tokenBalance,
+			CheckerUrl:   tokenUrl,
+			PossibleSpam: value.PossibleSpam,
 		})
 
-	}
-
-	response := models.Response{
-		Address:          request.Address,
-		Chain:            chain,
-		BlockNumber:      blockNo,
-		Asset:            asset,
-		AssetName:        name,
-		Balance:          balance,
-		NativeCheckerUrl: url,
-		ERC20Tokens:      tokenBalances,
 	}
 
 	return c.JSON(response)
