@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,9 +7,10 @@
     <title>Harris & Trotter - Proof of Balance</title>
     <link rel="icon" type="image/x-icon" href="/frontend/assets/favicon.ico">
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
 </head>
 <body>
-    <h1>Proof of Balance</h1>
+    <h1>PROOF OF BALANCE</h1>
     <form id="balanceForm">
     <div class="input-container">
         <label for="address">Address</label>
@@ -32,11 +33,14 @@
         <label for="timestamp">Timestamp</label>
         <input type="text" id="timestamp" name="timestamp" pattern="^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$" placeholder="hh:mm:ss" required><br>
     </div>
-    <button type="submit" class="submit-button">Retrieve balances</button>
+
+    <button class="btn btn-primary mx-auto d-flex justify-content-center" type="submit">Retrieve Balances</button>
     </form><br>
 
-    <div id="result" class="result">Result</div>
+    <div id="result" class="result"></div>
 
     <script src="script.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
 </body>
 </html>

@@ -25,10 +25,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (response.ok) {
             const data = await response.json();
+            // resultDiv.innerHTML = ''; // Clear any previous content
 
-            resultDiv.innerHTML = JSON.stringify(data, null, 2);
+            // Create a table element
+            const table = document.createElement('table');
+            const cols = Object.keys(data[0]);
+            const thead = document.createElement('thead');
+            const tr = document.createElement('tr');
+
+            cols.forEach((item) => {
+                const th = document.createElement('th');
+                th.innerText = item;
+                tr.appendChild(th);
+            });
+
+            thead.appendChild(tr);
+            table.append(tr);
+
+            data.forEach((item) => {
+                const tr = document.createElement('tr');
+                const vals = Object.values(item);
+
+                vals.forEach((elem) => {
+                    const td = document.createElement('td');
+                    td.innerText = elem;
+                    tr.appendChild(td);
+                });
+
+                table.appendChild(tr);
+            });
+
+            resultDiv.appendChild(table);
         } else {
-            resultDiv.innerHTML = 'Error fetching data from the server. '
+            resultDiv.innerHTML = 'Error fetching data from the server. ';
         }
     });
 });
