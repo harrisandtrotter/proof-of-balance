@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/harrisandtrotter/proof-of-balance/backend/initialisers"
+	"github.com/harrisandtrotter/proof-of-balance/server/initialisers"
 )
 
 const (
