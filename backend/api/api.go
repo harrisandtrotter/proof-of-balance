@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -59,8 +61,14 @@ func GetBalance(c *fiber.Ctx) error {
 		})
 	}
 
+	formatDate, err := formatDate(request.Date)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err,
+		})
+	}
 	// block number based on chain and timestamp
-	blockNo := block.BlockNumber(chain, request.Date+" "+request.Timestamp)
+	blockNo := block.BlockNumber(chain, formatDate+" "+request.Timestamp)
 
 	// relevant info to be returned to user
 	asset, url, name, tokenUrl, err := models.ReturnInfo(chain)
@@ -198,4 +206,18 @@ func get(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func formatDate(inputDate string) (string, error) {
+	inputFormat := "02/01/2006"
+	outputFormat := "2006-01-02"
+
+	t, err := time.Parse(inputFormat, inputDate)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("error (code: 600000): %v", err))
+	}
+
+	formattedDate := t.Format(outputFormat)
+
+	return formattedDate, nil
 }
