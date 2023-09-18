@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/harrisandtrotter/proof-of-balance/backend/initialisers"
+	"github.com/harrisandtrotter/proof-of-balance/server/initialisers"
 )
 
 type Block struct {
