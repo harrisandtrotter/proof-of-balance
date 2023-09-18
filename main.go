@@ -146,6 +146,16 @@ func GetTokenBalance() {
 		log.Fatalf("Error writing CSV headers: %v", err)
 	}
 
+	var timestamp string
+
+	inputReader := bufio.NewScanner(os.Stdin)
+
+	fmt.Print("Enter the required timestamp in the following format 31/12/2022 23:59:59\n")
+
+	if inputReader.Scan() {
+		timestamp = inputReader.Text()
+	}
+
 	// Range over and access the data structure from "data" variable and assigned to "value" variable.
 	for _, value := range data {
 		// Used to store asset symbol for native tokens
@@ -160,7 +170,7 @@ func GetTokenBalance() {
 		var Uvalue float64
 
 		// Get block number per chain per specified timestamp
-		block := GetBlock(value.Chain, Timestamp("31/12/2022 23:59:59 UTC"))
+		block := GetBlock(value.Chain, Timestamp(timestamp+" UTC"))
 
 		// Retrieve balance for native token per specified chain
 		nativeResponse := getBalance(value.Address, value.Chain, strconv.Itoa(block.Block))

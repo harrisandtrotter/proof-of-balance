@@ -64,8 +64,6 @@ func (p *Price) GetPrice(address, chain string, block int) float64 {
 		panic(err)
 	}
 
-	fmt.Println(url)
-
 	msg := data.CheckError(body)
 	if strings.Contains(msg, "No pools found with enough liquidity, to calculate the price") {
 		fmt.Printf("\nCoin is not found. Coin is most likely spam!\nToken address: %v\n\n", address)
