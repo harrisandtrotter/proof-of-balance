@@ -1,21 +1,21 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/harrisandtrotter/proof-of-balance/backend/api"
-	"github.com/harrisandtrotter/proof-of-balance/backend/blocks"
-	"github.com/harrisandtrotter/proof-of-balance/backend/initialisers"
-	"github.com/harrisandtrotter/proof-of-balance/backend/prices"
+	"github.com/harrisandtrotter/proof-of-balance/price"
+
 	"github.com/sqweek/dialog"
 )
 
@@ -55,8 +55,6 @@ const (
 	CRO   = "CRO"
 )
 
-var block blocks.Block
-
 // Data structure
 type TokenBalance struct {
 	TokenAdress string `json:"token_address"`
@@ -87,35 +85,29 @@ type Block struct {
 	ParentHash     string `json:"parent_hash"`
 }
 
-func init() {
-	initialisers.LoadEnvironment()
-	initialisers.LoadAPIKey()
-}
-
 func main() {
-	// for {
-	// 	fmt.Println("\nWelcome to Proof-of-Balance. \nSee below for the available options. ")
-	// 	fmt.Println("1. Block number")
-	// 	fmt.Println("2. Retrieve balances")
+	for {
+		fmt.Println("\nWelcome to Proof-of-Balance. \nSee below for the available options. ")
+		fmt.Println("1. Block number")
+		fmt.Println("2. Retrieve balances")
 
-	// 	reader := bufio.NewReader(os.Stdin)
-	// 	fmt.Print("\nSelect the option you want to use today (e.g., 1 for receiving specific block number): \n")
-	// 	input, _ := reader.ReadString('\n')
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("\nSelect the option you want to use today (e.g., 1 for receiving specific block number): \n")
+		input, _ := reader.ReadString('\n')
 
-	// 	switch strings.TrimSpace(input) {
-	// 	case "1":
-	// 		fmt.Println("Coming soon.")
-	// 	case "2":
-	// 		fmt.Println("Please select the CSV file. \nThe format needs to be the wallet address in the column A and the relevant chain in column B. \n\nThe available chains and the required format are as follows: \neth\narbitrum\nfantom\nbsc\npolygon\navalanche\ncronos")
-	// 		time.Sleep(time.Second * 1)
-	// 		GetTokenBalance()
-	// 	default:
-	// 		fmt.Println("Invalid option selected.")
-	// 	}
+		switch strings.TrimSpace(input) {
+		case "1":
+			fmt.Println("Coming soon.")
+		case "2":
+			fmt.Println("Please select the CSV file. \nThe format needs to be the wallet address in the column A and the relevant chain in column B. \n\nThe available chains and the required format are as follows: \neth\narbitrum\nfantom\nbsc\npolygon\navalanche\ncronos")
+			time.Sleep(time.Second * 1)
+			GetTokenBalance()
+		default:
+			fmt.Println("Invalid option selected.")
+		}
 
-	// 	time.Sleep(time.Second * 3)
-	// }
-	api.Setup()
+		time.Sleep(time.Second * 3)
+	}
 
 }
 
@@ -163,15 +155,15 @@ func GetTokenBalance() {
 		// Used to store native token name to print into the CSV
 		var tokenName string
 		// Used to access prices module to retrieve prices and calculate Usd value.
-		var price prices.Price
+		var price price.Price
 		// Used to calculate USD value based on "price" variable
 		var Uvalue float64
 
 		// Get block number per chain per specified timestamp
-		// block := GetBlock(value.Chain, Timestamp("31/12/2022 23:59:59 UTC"))
-		blockNo := block.BlockNumber(value.Chain, block.TimestampToUnix("31/12/2022 23:59:59"))
+		block := GetBlock(value.Chain, Timestamp("31/12/2022 23:59:59 UTC"))
+
 		// Retrieve balance for native token per specified chain
-		nativeResponse := getBalance(value.Address, value.Chain, strconv.Itoa(blockNo))
+		nativeResponse := getBalance(value.Address, value.Chain, strconv.Itoa(block.Block))
 
 		// Parse the response for native token to an accessible native token data strucuture
 		native := ResponseToNative(nativeResponse)
@@ -219,7 +211,7 @@ func GetTokenBalance() {
 		nativeToken := nativeString / math.Pow10(18)
 
 		// Store values and write values for native token data
-		nativeRecord := []string{value.Address, value.Chain, tokenName, asset, " ", fmt.Sprintf("%f", nativeToken), strconv.Itoa(blockNo), nativeTokenChecker, "", ""}
+		nativeRecord := []string{value.Address, value.Chain, tokenName, asset, " ", fmt.Sprintf("%f", nativeToken), strconv.Itoa(block.Block), nativeTokenChecker, "", ""}
 		err = writer.Write(nativeRecord)
 		if err != nil {
 			log.Fatalf("Error writing to csv file: %v.", err)
@@ -268,7 +260,7 @@ func GetTokenBalance() {
 			}
 
 			// Store and write values for ERC20 token data
-			tokenRecord := []string{value.Address, value.Chain, token.Name, token.Symbol, token.TokenAdress, fmt.Sprintf("%f", tokenBalance), strconv.Itoa(blockNo), erc20TokenChecker, strconv.FormatFloat(erc20Price, 'f', 6, 64), strconv.FormatFloat(Uvalue, 'f', 6, 64)}
+			tokenRecord := []string{value.Address, value.Chain, token.Name, token.Symbol, token.TokenAdress, fmt.Sprintf("%f", tokenBalance), strconv.Itoa(block.Block), erc20TokenChecker, strconv.FormatFloat(erc20Price, 'f', 6, 64), strconv.FormatFloat(Uvalue, 'f', 6, 64)}
 			err = writer.Write(tokenRecord)
 			if err != nil {
 				log.Fatalf("Error: %v.", err)
@@ -287,7 +279,7 @@ func getTokenBalance(address string, chain string, block string, tokens string) 
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error parsing response body to get token balance from Moralis API: %v.", err)
 
@@ -305,7 +297,7 @@ func getBalance(address string, chain string, block string) []byte {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error parsing response body for getBalance from Moralis API: %v.", err)
 	}
@@ -321,7 +313,7 @@ func getRequest(url string) (*http.Response, error) {
 	}
 
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-API-Key", initialisers.APIKEY)
+	req.Header.Add("X-API-Key", "JODRWjX4czsUtirHaEXxEY81jznW3gGQf1GExtDVP30Mao7HUWbvLSPrx2VNaaKE")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -408,7 +400,7 @@ func GetBlock(chain string, timestamp string) Block {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error parsing block response body: %v.", err)
 	}
